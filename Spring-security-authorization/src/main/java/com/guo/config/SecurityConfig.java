@@ -14,6 +14,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+
+import javax.sql.DataSource;
 
 /**
  * 安全配置
@@ -29,8 +32,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 
-    @Autowired
-    PasswordEncoder passwordEncoder;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -48,33 +49,51 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth
-            .inMemoryAuthentication()
-                .withUser("foo")
-                .password(passwordEncoder.encode("12345"))
-                .roles("admin")
-
-                .and()
-                .withUser("bar")
-                .password(passwordEncoder.encode("12345"))
-                .roles("user");
-
-
-    }
+//    @Override
+//    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+//        auth
+//            .inMemoryAuthentication()
+//                .withUser("foo")
+//                .password(passwordEncoder.encode("12345"))
+//                .roles("admin")
+//
+//                .and()
+//                .withUser("bar")
+//                .password(passwordEncoder.encode("12345"))
+//                .roles("user");
+//
+//
+//    }
 
     /**
      * 实现UserDetailsService接口，并在内存中定义用户，和上面定义用户的方式二选一即可
      */
+//    @Override
+//    @Bean
+//    protected UserDetailsService userDetailsService(){
+//        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+//        manager.createUser(User.withUsername("foo").password(passwordEncoder.encode("12345")).roles("admin").build());
+//        manager.createUser(User.withUsername("bar").password(passwordEncoder.encode("12345")).roles("user").build());
+//        return manager;
+//    }
+
+    @Autowired
+    DataSource dataSource;
     @Override
     @Bean
-    protected UserDetailsService userDetailsService(){
-        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-        manager.createUser(User.withUsername("foo").password(passwordEncoder.encode("12345")).roles("admin").build());
-        manager.createUser(User.withUsername("bar").password(passwordEncoder.encode("12345")).roles("user").build());
+    protected UserDetailsService userDetailsService() {
+        JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
+        manager.setDataSource(dataSource);
+        if (!manager.userExists("foo")) {
+            manager.createUser(User.withUsername("foo").password(passwordEncoder().encode("12345")).roles("admin").build());
+        }
+        if (!manager.userExists("bar")) {
+            manager.createUser(User.withUsername("bar").password(passwordEncoder().encode("12345")).roles("user").build());
+        }
         return manager;
     }
+
+
 
     @Bean
     RoleHierarchy roleHierarchy() {
